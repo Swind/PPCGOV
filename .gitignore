@@ -1,1 +1,5 @@
 *.txt
+*.db
+*.pyc
+*.swp
+.DS_Store

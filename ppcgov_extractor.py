@@ -3,7 +3,6 @@ import os
 import HTMLParser
 import re
 import datetime
-import pprint
 
 from BeautifulSoup import BeautifulSoup
 
@@ -12,9 +11,11 @@ FORMAT = "[%(filename)s:%(lineno)s] %(message)s"
 logging.basicConfig(format = FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from ppcdef import NO_DATA
+
 name_map = {u"機關代碼":     "entity_code",
             u"機關名稱":     "procuring_entity",
-            u"單位名稱":     "unit",
+            #u"單位名稱":     "unit",
             u"標案案號":     "job_number",
             u"招標方式":     "procurement_type",
             u"決標方式":     "tender_awarding_type",
@@ -46,10 +47,15 @@ def load_all_tender_raw_detail_info():
     files = [f for f in os.listdir(folder_name)]
 
     for detail_info_file_path in files:
+
+        file_param = detail_info_file_path.split('.txt')[0].split('_')
+        pkAtmMain = file_param[0]
+        job_number = file_param[1]
+
         with open(os.path.join(folder_name, detail_info_file_path), 'r') as detail_info_file:
             content = detail_info_file.read()
 
-        yield content
+        yield (pkAtmMain, job_number, content)
 
 def parse_tender_detail_info(info_soup):
     award_info_dic = __get_award_info_dic(info_soup)
@@ -60,13 +66,15 @@ def parse_tender_detail_info(info_soup):
     tenderer_info_dic = __get_tenderer_info_dic(tr) 
     tender_award_item_dic = __get_tender_award_item_dic(tr)
 
+    return (award_info_dic, tenderer_info_dic, tender_award_item_dic)
+
     #pprint.pprint(award_info_dic)
     #pprint.pprint(tender_award_item_dic)
     #pprint.pprint(tenderer_info_dic)
 
 def __get_award_info_dic(info_soup):
     #機關資料
-    needed_keys = [u"機關代碼", u"機關名稱", u"單位名稱"]
+    needed_keys = [u"機關代碼", u"機關名稱"]#, u"單位名稱"]
     award_dic = __basic_get_award_info_dic(info_soup, needed_keys, 1)
 
     #已公告資料
@@ -101,6 +109,9 @@ def __basic_get_award_info_dic(info_soup, needed_keys, table_id):
     for needed_key in needed_keys:
         if info_dic.has_key(needed_key):
             filtered_dic[name_map[needed_key]] = __transfer_data_format(info_dic[needed_key])
+        else:
+            filtered_dic[name_map[needed_key]] = NO_DATA
+
     
     return filtered_dic
 
@@ -134,7 +145,7 @@ def __transfer_data_format(data):
     data = __remove_escape_and_space(data)
     date_pattern = r"(?P<Y>[0-9]{3})/(?P<m>[0-9]{2})/(?P<d>[0-9]{2})"
     time_pattern = r"(?P<H>[0-9]{2}):(?P<M>[0-9]{2}"
-    cost_pattern = r"\$?-?([0-9,]+)"
+    cost_pattern = re.compile(u"\$?-?([0-9,]+)元$")
 
     #Date
     m = re.search(date_pattern, data)
@@ -189,9 +200,14 @@ def __transfer_award_table_to_dic(info_soup, table_id):
 if __name__ == "__main__":
     raw_detail_info_iter = load_all_tender_raw_detail_info()
 
-    for raw_detail_info in raw_detail_info_iter:
+    for pkAtmMain, job_number, raw_detail_info in raw_detail_info_iter:
         info_soup = BeautifulSoup(''.join(raw_detail_info))
-        parse_tender_detail_info(info_soup)
+        award_info_dic, tenderer_info_dic, tender_award_item_dic = parse_tender_detail_info(info_soup)
+        
+        for key, value in award_info_dic.items():
+            print key, value
+
+        import pdb;pdb.set_trace()
 
     print "end"
 

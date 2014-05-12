@@ -2,6 +2,8 @@
 import requests
 import re
 from math import ceil 
+import calendar
+import time
 from BeautifulSoup import BeautifulSoup
 
 import logging
@@ -133,16 +135,19 @@ def save_all_tender_raw_detail_info(links):
         tender_keys = get_tender_key_from_link(link)
 
         __save_tender_raw_detail_info(raw_info, tender_keys)
+        time.sleep(1)
 
 def __save_tender_raw_detail_info(raw_info, tender_keys):
     with open('tender_raw_detail_info/%s_%s.txt' % tender_keys, 'w') as info_file:
        info_file.write(raw_info) 
 
+def query_tender_links_year(org_id, year):
+    for month in range(1, 13):
+        logger.info("Get month %d:" % month)
+        links = query_tender_links(org_id, "%d/%02d/01" % (year, month), "%d/%02d/%d" % (year, month, calendar.monthrange(year + 1911, month)[1]))
+        save_all_tender_raw_detail_info(links)
 
 if __name__ == "__main__":
-    links = query_tender_links(ORG_IDS[u'國防部'], "103/03/01", "103/05/10")
-    save_tender_links("bid_list.txt", links)
-
-    links = load_tender_links("bid_list.txt")
+    links = query_tender_links_year(ORG_IDS[u'立法院'], 101)
     save_all_tender_raw_detail_info(links)
 

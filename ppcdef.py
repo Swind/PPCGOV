@@ -69,3 +69,5 @@ PAYLOAD = {'awardAnnounceEndDate': '103/04/29',
            'tenderRange': '',
            'tenderStatus': '4,5,21,29',
            'tenderWay': ''}
+
+NO_DATA = "NO_DATA"
